@@ -1,4 +1,13 @@
-# Jenkins API Client for Go
+# Warning: Forked from github.com/bndr/gojenkins
+
+Please consider using the original work at github.com/bndr/gojenkins instead of this customized fork.
+
+The fork was created to customize the original package quickly for personal use.
+
+Modifications include:
+* Adds a `Depth` property to various response objects to control the amount of data the client gets back.
+
+## Jenkins API Client for Go
 
 [![GoDoc](https://godoc.org/github.com/bndr/gojenkins?status.svg)](https://godoc.org/github.com/bndr/gojenkins)
 [![Go Report Cart](https://goreportcard.com/badge/github.com/bndr/gojenkins)](https://goreportcard.com/report/github.com/bndr/gojenkins)
@@ -26,7 +35,7 @@ These are some of the features that are currently implemented:
 
 ```go
 
-import "github.com/bndr/gojenkins"
+import "github.com/carflo/gojenkins"
 
 jenkins := gojenkins.CreateJenkins(nil, "http://localhost:8080/", "admin", "admin")
 // Provide CA certificate if server is using self-signed certificate
@@ -88,7 +97,7 @@ API Reference: https://godoc.org/github.com/bndr/gojenkins
 
 For all of the examples below first create a jenkins object
 ```go
-import "github.com/bndr/gojenkins"
+import "github.com/carflo/gojenkins"
 
 jenkins, _ := gojenkins.CreateJenkins(nil, "http://localhost:8080/", "admin", "admin").Init()
 ```
@@ -282,7 +291,7 @@ build.Poll()
 
 ## Contribute
 
-All Contributions are welcome. The todo list is on the bottom of this README. Feel free to send a pull request.
+Please contribute to the original work at github.com/bndr/gojenkins
 
 ## TODO
 

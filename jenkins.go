@@ -12,7 +12,9 @@
 // License for the specific language governing permissions and limitations
 // under the License.
 
-// Gojenkins is a Jenkins Client in Go, that exposes the jenkins REST api in a more developer friendly way.
+// Original work has been modified to include Depth control on API calls to control the amount of data requested.
+
+// Package gojenkins is a Jenkins Client in Go, that exposes the jenkins REST api in a more developer friendly way.
 package gojenkins
 
 import (
@@ -36,6 +38,7 @@ type Jenkins struct {
 	Version   string
 	Raw       *ExecutorResponse
 	Requester *Requester
+	Depth     int
 }
 
 // Loggers
@@ -274,7 +277,7 @@ func (j *Jenkins) BuildJob(name string, options ...interface{}) (int64, error) {
 }
 
 func (j *Jenkins) GetNode(name string) (*Node, error) {
-	node := Node{Jenkins: j, Raw: new(NodeResponse), Base: "/computer/" + name}
+	node := Node{Jenkins: j, Raw: new(NodeResponse), Base: "/computer/" + name, Depth: j.Depth}
 	status, err := node.Poll()
 	if err != nil {
 		return nil, err
@@ -286,7 +289,7 @@ func (j *Jenkins) GetNode(name string) (*Node, error) {
 }
 
 func (j *Jenkins) GetLabel(name string) (*Label, error) {
-	label := Label{Jenkins: j, Raw: new(LabelResponse), Base: "/label/" + name}
+	label := Label{Jenkins: j, Raw: new(LabelResponse), Base: "/label/" + name, Depth: j.Depth}
 	status, err := label.Poll()
 	if err != nil {
 		return nil, err
@@ -311,7 +314,7 @@ func (j *Jenkins) GetBuild(jobName string, number int64) (*Build, error) {
 }
 
 func (j *Jenkins) GetJob(id string, parentIDs ...string) (*Job, error) {
-	job := Job{Jenkins: j, Raw: new(JobResponse), Base: "/job/" + strings.Join(append(parentIDs, id), "/job/")}
+	job := Job{Jenkins: j, Raw: new(JobResponse), Base: "/job/" + strings.Join(append(parentIDs, id), "/job/"), Depth: j.Depth}
 	status, err := job.Poll()
 	if err != nil {
 		return nil, err
@@ -323,7 +326,7 @@ func (j *Jenkins) GetJob(id string, parentIDs ...string) (*Job, error) {
 }
 
 func (j *Jenkins) GetSubJob(parentId string, childId string) (*Job, error) {
-	job := Job{Jenkins: j, Raw: new(JobResponse), Base: "/job/" + parentId + "/job/" + childId}
+	job := Job{Jenkins: j, Raw: new(JobResponse), Base: "/job/" + parentId + "/job/" + childId, Depth: j.Depth}
 	status, err := job.Poll()
 	if err != nil {
 		return nil, fmt.Errorf("trouble polling job: %v", err)
@@ -335,7 +338,7 @@ func (j *Jenkins) GetSubJob(parentId string, childId string) (*Job, error) {
 }
 
 func (j *Jenkins) GetFolder(id string, parents ...string) (*Folder, error) {
-	folder := Folder{Jenkins: j, Raw: new(FolderResponse), Base: "/job/" + strings.Join(append(parents, id), "/job/")}
+	folder := Folder{Jenkins: j, Raw: new(FolderResponse), Base: "/job/" + strings.Join(append(parents, id), "/job/"), Depth: j.Depth}
 	status, err := folder.Poll()
 	if err != nil {
 		return nil, fmt.Errorf("trouble polling folder: %v", err)
@@ -348,12 +351,11 @@ func (j *Jenkins) GetFolder(id string, parents ...string) (*Folder, error) {
 
 func (j *Jenkins) GetAllNodes() ([]*Node, error) {
 	computers := new(Computers)
-
-	qr := map[string]string{
-		"depth": "1",
+	query := map[string]string{
+		"depth": strconv.Itoa(j.Depth),
 	}
 
-	_, err := j.Requester.GetJSON("/computer", computers, qr)
+	_, err := j.Requester.GetJSON("/computer", computers, query)
 	if err != nil {
 		return nil, err
 	}
@@ -414,7 +416,7 @@ func (j *Jenkins) GetAllJobs() ([]*Job, error) {
 
 // Returns a Queue
 func (j *Jenkins) GetQueue() (*Queue, error) {
-	q := &Queue{Jenkins: j, Raw: new(queueResponse), Base: j.GetQueueUrl()}
+	q := &Queue{Jenkins: j, Raw: new(queueResponse), Base: j.GetQueueUrl(), Depth: j.Depth}
 	_, err := q.Poll()
 	if err != nil {
 		return nil, err
@@ -428,7 +430,7 @@ func (j *Jenkins) GetQueueUrl() string {
 
 // GetQueueItem returns a single queue Task
 func (j *Jenkins) GetQueueItem(id int64) (*Task, error) {
-	t := &Task{Raw: new(taskResponse), Jenkins: j, Base: j.getQueueItemURL(id)}
+	t := &Task{Raw: new(taskResponse), Jenkins: j, Base: j.getQueueItemURL(id), Depth: j.Depth}
 	_, err := t.Poll()
 	if err != nil {
 		return nil, err
@@ -442,14 +444,13 @@ func (j *Jenkins) getQueueItemURL(id int64) string {
 
 // Get Artifact data by Hash
 func (j *Jenkins) GetArtifactData(id string) (*FingerPrintResponse, error) {
-	fp := FingerPrint{Jenkins: j, Base: "/fingerprint/", Id: id, Raw: new(FingerPrintResponse)}
+	fp := FingerPrint{Jenkins: j, Base: "/fingerprint/", Id: id, Raw: new(FingerPrintResponse), Depth: j.Depth}
 	return fp.GetInfo()
 }
 
 // Returns the list of all plugins installed on the Jenkins server.
-// You can supply depth parameter, to limit how much data is returned.
-func (j *Jenkins) GetPlugins(depth int) (*Plugins, error) {
-	p := Plugins{Jenkins: j, Raw: new(PluginResponse), Base: "/pluginManager", Depth: depth}
+func (j *Jenkins) GetPlugins() (*Plugins, error) {
+	p := Plugins{Jenkins: j, Raw: new(PluginResponse), Base: "/pluginManager", Depth: j.Depth}
 	_, err := p.Poll()
 	if err != nil {
 		return nil, err
@@ -468,9 +469,13 @@ func (j *Jenkins) UninstallPlugin(name string) error {
 }
 
 // Check if the plugin is installed on the server.
-// Depth level 1 is used. If you need to go deeper, you can use GetPlugins, and iterate through them.
 func (j *Jenkins) HasPlugin(name string) (*Plugin, error) {
-	p, err := j.GetPlugins(1)
+	defer func(old int) {
+		j.Depth = old
+	}(j.Depth)
+
+	j.Depth = 1
+	p, err := j.GetPlugins()
 
 	if err != nil {
 		return nil, err
@@ -559,7 +564,10 @@ func (j *Jenkins) CreateView(name string, viewType string) (*View, error) {
 }
 
 func (j *Jenkins) Poll() (int, error) {
-	resp, err := j.Requester.GetJSON("/", j.Raw, nil)
+	query := map[string]string{
+		"depth": strconv.Itoa(j.Depth),
+	}
+	resp, err := j.Requester.GetJSON("/", j.Raw, query)
 	if err != nil {
 		return 0, err
 	}

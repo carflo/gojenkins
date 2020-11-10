@@ -22,6 +22,7 @@ type Queue struct {
 	Jenkins *Jenkins
 	Raw     *queueResponse
 	Base    string
+	Depth   int
 }
 
 type queueResponse struct {
@@ -33,6 +34,7 @@ type Task struct {
 	Jenkins *Jenkins
 	Queue   *Queue
 	Base    string
+	Depth   int
 }
 
 type taskResponse struct {
@@ -133,7 +135,10 @@ func (t *Task) GetCauses() []map[string]interface{} {
 }
 
 func (q *Queue) Poll() (int, error) {
-	response, err := q.Jenkins.Requester.GetJSON(q.Base, q.Raw, nil)
+	query := map[string]string{
+		"depth": strconv.Itoa(q.Depth),
+	}
+	response, err := q.Jenkins.Requester.GetJSON(q.Base, q.Raw, query)
 	if err != nil {
 		return 0, err
 	}
@@ -141,7 +146,10 @@ func (q *Queue) Poll() (int, error) {
 }
 
 func (t *Task) Poll() (int, error) {
-	response, err := t.Jenkins.Requester.GetJSON(t.Base, t.Raw, nil)
+	query := map[string]string{
+		"depth": strconv.Itoa(t.Depth),
+	}
+	response, err := t.Jenkins.Requester.GetJSON(t.Base, t.Raw, query)
 	if err != nil {
 		return 0, err
 	}

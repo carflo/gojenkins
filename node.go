@@ -14,7 +14,10 @@
 
 package gojenkins
 
-import "errors"
+import (
+	"errors"
+	"strconv"
+)
 
 // Nodes
 
@@ -29,6 +32,7 @@ type Node struct {
 	Raw     *NodeResponse
 	Jenkins *Jenkins
 	Base    string
+	Depth   int
 }
 
 type NodeResponse struct {
@@ -181,7 +185,11 @@ func (n *Node) ToggleTemporarilyOffline(options ...interface{}) (bool, error) {
 }
 
 func (n *Node) Poll() (int, error) {
-	response, err := n.Jenkins.Requester.GetJSON(n.Base, n.Raw, nil)
+	query := map[string]string{
+		"depth": strconv.Itoa(n.Depth),
+	}
+
+	response, err := n.Jenkins.Requester.GetJSON(n.Base, n.Raw, query)
 	if err != nil {
 		return 0, err
 	}

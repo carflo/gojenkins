@@ -225,9 +225,35 @@ func (b *Build) GetCulprits() []Culprit {
 	return b.Raw.Culprits
 }
 
+// Stop aborts a build
 func (b *Build) Stop() (bool, error) {
 	if b.IsRunning() {
 		response, err := b.Jenkins.Requester.Post(b.Base+"/stop", nil, nil, nil)
+		if err != nil {
+			return false, err
+		}
+		return response.StatusCode == 200, nil
+	}
+	return true, nil
+}
+
+// Term forcibly terminates a build (should only be used if stop does not work)
+func (b *Build) Term() (bool, error) {
+	if b.IsRunning() {
+		response, err := b.Jenkins.Requester.Post(b.Base+"/term", nil, nil, nil)
+		if err != nil {
+			return false, err
+		}
+		return response.StatusCode == 200, nil
+	}
+	return true, nil
+}
+
+// Kill hard kills a build
+// This is the most destructive way to stop a build and should only be used as a last resort.
+func (b *Build) Kill() (bool, error) {
+	if b.IsRunning() {
+		response, err := b.Jenkins.Requester.Post(b.Base+"/kill", nil, nil, nil)
 		if err != nil {
 			return false, err
 		}
@@ -345,7 +371,11 @@ func (b *Build) GetDownstreamJobNames() []string {
 }
 
 func (b *Build) GetAllFingerPrints() []*FingerPrint {
-	b.Poll(3)
+	defer func(old int) {
+		b.Depth = old
+	}(b.Depth)
+	b.Depth = 3
+	b.Poll()
 	result := make([]*FingerPrint, len(b.Raw.FingerPrint))
 	for i, f := range b.Raw.FingerPrint {
 		result[i] = &FingerPrint{Jenkins: b.Jenkins, Base: "/fingerprint/", Id: f.Hash, Raw: &f}
@@ -400,7 +430,11 @@ func (b *Build) GetUpstreamBuild() (*Build, error) {
 }
 
 func (b *Build) GetMatrixRuns() ([]*Build, error) {
-	_, err := b.Poll(0)
+	defer func(old int) {
+		b.Depth = old
+	}(b.Depth)
+	b.Depth = 0
+	_, err := b.Poll()
 	if err != nil {
 		return nil, err
 	}
@@ -416,7 +450,6 @@ func (b *Build) GetMatrixRuns() ([]*Build, error) {
 }
 
 func (b *Build) GetResultSet() (*TestResult, error) {
-
 	url := b.Base + "/testReport"
 	var report TestResult
 
@@ -489,27 +522,11 @@ func (b *Build) SetDescription(description string) error {
 	return err
 }
 
-// Poll for current data. Optional parameter - depth.
+// Poll for current data.
 // More about depth here: https://wiki.jenkins-ci.org/display/JENKINS/Remote+access+API
-func (b *Build) Poll(options ...interface{}) (int, error) {
-	depth := "-1"
-
-	for _, o := range options {
-		switch v := o.(type) {
-		case string:
-			depth = v
-		case int:
-			depth = strconv.Itoa(v)
-		case int64:
-			depth = strconv.FormatInt(v, 10)
-		}
-	}
-	if depth == "-1" {
-		depth = strconv.Itoa(b.Depth)
-	}
-
+func (b *Build) Poll() (int, error) {
 	qr := map[string]string{
-		"depth": depth,
+		"depth": strconv.Itoa(b.Depth),
 	}
 	response, err := b.Jenkins.Requester.GetJSON(b.Base, b.Raw, qr)
 	if err != nil {

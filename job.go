@@ -29,6 +29,7 @@ type Job struct {
 	Raw     *JobResponse
 	Jenkins *Jenkins
 	Base    string
+	Depth   int
 }
 
 type JobBuild struct {
@@ -154,7 +155,7 @@ func (j *Job) getBuildByType(buildType string) (*Build, error) {
 	}
 	build := Build{
 		Jenkins: j.Jenkins,
-		Depth:   1,
+		Depth:   j.Depth,
 		Job:     j,
 		Raw:     new(BuildResponse),
 		Base:    j.Base + "/" + number}
@@ -516,7 +517,10 @@ func (j *Job) Invoke(files []string, skipIfRunning bool, params map[string]strin
 }
 
 func (j *Job) Poll() (int, error) {
-	response, err := j.Jenkins.Requester.GetJSON(j.Base, j.Raw, nil)
+	query := map[string]string{
+		"depth": strconv.Itoa(j.Depth),
+	}
+	response, err := j.Jenkins.Requester.GetJSON(j.Base, j.Raw, query)
 	if err != nil {
 		return 0, err
 	}

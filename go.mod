@@ -3,6 +3,8 @@ module github.com/carflo/gojenkins
 go 1.15
 
 require (
-	github.com/stretchr/testify v1.4.0
-	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/stretchr/testify v1.6.1
+	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
+	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 )

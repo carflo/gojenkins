@@ -24,6 +24,7 @@ type Folder struct {
 	Raw     *FolderResponse
 	Jenkins *Jenkins
 	Base    string
+	Depth   int
 }
 
 type FolderResponse struct {
@@ -68,7 +69,10 @@ func (f *Folder) Create(name string) (*Folder, error) {
 }
 
 func (f *Folder) Poll() (int, error) {
-	response, err := f.Jenkins.Requester.GetJSON(f.Base, f.Raw, nil)
+	query := map[string]string{
+		"depth": strconv.Itoa(f.Depth),
+	}
+	response, err := f.Jenkins.Requester.GetJSON(f.Base, f.Raw, query)
 	if err != nil {
 		return 0, err
 	}

@@ -14,10 +14,13 @@
 
 package gojenkins
 
+import "strconv"
+
 type Label struct {
 	Raw     *LabelResponse
 	Jenkins *Jenkins
 	Base    string
+	Depth   int
 }
 
 type MODE string
@@ -54,7 +57,11 @@ func (l *Label) GetNodes() []LabelNode {
 }
 
 func (l *Label) Poll() (int, error) {
-	response, err := l.Jenkins.Requester.GetJSON(l.Base, l.Raw, nil)
+	query := map[string]string{
+		"depth": strconv.Itoa(l.Depth),
+	}
+
+	response, err := l.Jenkins.Requester.GetJSON(l.Base, l.Raw, query)
 	if err != nil {
 		return 0, err
 	}

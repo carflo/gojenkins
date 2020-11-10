@@ -36,6 +36,7 @@ type Jenkins struct {
 	Version   string
 	Raw       *ExecutorResponse
 	Requester *Requester
+	Depth     int
 }
 
 // Loggers
@@ -348,12 +349,11 @@ func (j *Jenkins) GetFolder(id string, parents ...string) (*Folder, error) {
 
 func (j *Jenkins) GetAllNodes() ([]*Node, error) {
 	computers := new(Computers)
-
-	qr := map[string]string{
-		"depth": "1",
+	query := map[string]string{
+		"depth": strconv.Itoa(j.Depth),
 	}
 
-	_, err := j.Requester.GetJSON("/computer", computers, qr)
+	_, err := j.Requester.GetJSON("/computer", computers, query)
 	if err != nil {
 		return nil, err
 	}
@@ -559,7 +559,10 @@ func (j *Jenkins) CreateView(name string, viewType string) (*View, error) {
 }
 
 func (j *Jenkins) Poll() (int, error) {
-	resp, err := j.Requester.GetJSON("/", j.Raw, nil)
+	query := map[string]string{
+		"depth": strconv.Itoa(j.Depth),
+	}
+	resp, err := j.Requester.GetJSON("/", j.Raw, query)
 	if err != nil {
 		return 0, err
 	}

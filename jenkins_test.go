@@ -37,7 +37,6 @@ func TestCreateJobs(t *testing.T) {
 	assert.Equal(t, job2ID, job2.GetName())
 }
 
-
 func TestCreateNodes(t *testing.T) {
 
 	id1 := "node1_test"
@@ -194,7 +193,7 @@ func TestCopyDeleteJob(t *testing.T) {
 }
 
 func TestGetPlugins(t *testing.T) {
-	plugins, _ := jenkins.GetPlugins(3)
+	plugins, _ := jenkins.GetPlugins()
 	assert.Equal(t, 10, plugins.Count())
 }
 

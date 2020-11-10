@@ -17,6 +17,7 @@ package gojenkins
 import (
 	"errors"
 	"fmt"
+	"strconv"
 )
 
 type FingerPrint struct {
@@ -24,6 +25,7 @@ type FingerPrint struct {
 	Base    string
 	Id      string
 	Raw     *FingerPrintResponse
+	Depth   int
 }
 
 type FingerPrintResponse struct {
@@ -87,7 +89,10 @@ func (f FingerPrint) GetInfo() (*FingerPrintResponse, error) {
 }
 
 func (f FingerPrint) Poll() (int, error) {
-	response, err := f.Jenkins.Requester.GetJSON(f.Base+f.Id, f.Raw, nil)
+	query := map[string]string{
+		"depth": strconv.Itoa(f.Depth),
+	}
+	response, err := f.Jenkins.Requester.GetJSON(f.Base+f.Id, f.Raw, query)
 	if err != nil {
 		return 0, err
 	}

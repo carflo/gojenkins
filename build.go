@@ -371,6 +371,9 @@ func (b *Build) GetDownstreamJobNames() []string {
 }
 
 func (b *Build) GetAllFingerPrints() []*FingerPrint {
+	defer func(old int) {
+		b.Depth = old
+	}(b.Depth)
 	b.Depth = 3
 	b.Poll()
 	result := make([]*FingerPrint, len(b.Raw.FingerPrint))
@@ -427,6 +430,9 @@ func (b *Build) GetUpstreamBuild() (*Build, error) {
 }
 
 func (b *Build) GetMatrixRuns() ([]*Build, error) {
+	defer func(old int) {
+		b.Depth = old
+	}(b.Depth)
 	b.Depth = 0
 	_, err := b.Poll()
 	if err != nil {

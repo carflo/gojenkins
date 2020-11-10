@@ -262,6 +262,20 @@ build.Poll()
 
 ```
 
+### To control the amount of Data coming back from Jenkins use the Depth control property
+For more information see https://www.jenkins.io/doc/book/using/remote-access-api/#RemoteaccessAPI-Depthcontrol
+```go
+
+job, _ := jenkins.GetJob("job")
+job.Depth = 2
+job.Poll()
+
+build, _ := job.getBuild(1)
+build.Depth = 1
+build.Poll()
+
+```
+
 ## Testing
 
     go test

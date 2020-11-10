@@ -155,7 +155,7 @@ func (j *Job) getBuildByType(buildType string) (*Build, error) {
 	}
 	build := Build{
 		Jenkins: j.Jenkins,
-		Depth:   1,
+		Depth:   j.Depth,
 		Job:     j,
 		Raw:     new(BuildResponse),
 		Base:    j.Base + "/" + number}
